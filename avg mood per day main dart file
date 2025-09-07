@@ -1,0 +1,300 @@
+import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Mood Tracker',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      home: const HomeScreen(),
+    );
+  }
+}
+
+/// ------------------- MODEL -------------------
+class JournalEntry {
+  final String mood;
+  final String text;
+  final DateTime date;
+
+  JournalEntry({required this.mood, required this.text, required this.date});
+}
+
+// In-memory list of entries (prototype only)
+List<JournalEntry> entries = [];
+
+/// ------------------- HOME SCREEN -------------------
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Mood Tracker")),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              child: const Text("➕ Add Journal Entry"),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddEntryScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              child: const Text("📖 View Mood History"),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              child: const Text("📊 View Mood Graph"),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MoodGraphScreen()),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ------------------- ADD ENTRY SCREEN -------------------
+class AddEntryScreen extends StatefulWidget {
+  const AddEntryScreen({super.key});
+
+  @override
+  State<AddEntryScreen> createState() => _AddEntryScreenState();
+}
+
+class _AddEntryScreenState extends State<AddEntryScreen> {
+  String selectedMood = "";
+  final TextEditingController textController = TextEditingController();
+
+  void saveEntry() {
+    if (selectedMood.isNotEmpty) {
+      entries.add(JournalEntry(
+        mood: selectedMood,
+        text: textController.text,
+        date: DateTime.now(),
+      ));
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a mood")),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("New Journal Entry")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            const Text(
+              "How are you feeling today?",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: ["😊", "😢", "😡", "😍", "😐"].map((emoji) {
+                final isSelected = selectedMood == emoji;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedMood = emoji;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected ? Colors.blue.shade100 : Colors.transparent,
+                      border: Border.all(
+                        color: isSelected ? Colors.blue : Colors.grey,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      emoji,
+                      style: TextStyle(
+                        fontSize: isSelected ? 40 : 32,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: textController,
+              decoration: const InputDecoration(
+                labelText: "Write your thoughts...",
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: saveEntry,
+              child: const Text("💾 Save Entry"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ------------------- HISTORY SCREEN -------------------
+class HistoryScreen extends StatelessWidget {
+  const HistoryScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Mood History")),
+      body: entries.isEmpty
+          ? const Center(child: Text("No entries yet."))
+          : ListView.builder(
+        itemCount: entries.length,
+        itemBuilder: (context, index) {
+          final entry = entries[entries.length - 1 - index];
+          return Card(
+            margin: const EdgeInsets.all(8),
+            child: ListTile(
+              leading: Text(entry.mood, style: const TextStyle(fontSize: 28)),
+              title: Text(entry.text.isEmpty ? "No text" : entry.text),
+              subtitle: Text(
+                "${entry.date.day}/${entry.date.month}/${entry.date.year} "
+                    "${entry.date.hour}:${entry.date.minute.toString().padLeft(2, '0')}",
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// ------------------- MOOD GRAPH SCREEN -------------------
+class MoodGraphScreen extends StatelessWidget {
+  const MoodGraphScreen({super.key});
+
+  int moodToValue(String mood) {
+    switch (mood) {
+      case "😊":
+        return 5;
+      case "😍":
+        return 4;
+      case "😐":
+        return 3;
+      case "😢":
+        return 2;
+      case "😡":
+        return 1;
+      default:
+        return 0;
+    }
+  }
+
+  String valueToEmoji(double value) {
+    if (value >= 4.5) return "😊";
+    if (value >= 3.5) return "😍";
+    if (value >= 2.5) return "😐";
+    if (value >= 1.5) return "😢";
+    return "😡";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Mood Graph")),
+        body: const Center(child: Text("No entries to show.")),
+      );
+    }
+
+    // Group entries by day
+    Map<String, List<JournalEntry>> grouped = {};
+    for (var entry in entries) {
+      final key = "${entry.date.year}-${entry.date.month}-${entry.date.day}";
+      grouped.putIfAbsent(key, () => []);
+      grouped[key]!.add(entry);
+    }
+
+    final sortedKeys = grouped.keys.toList()..sort();
+
+    // Prepare chart data
+    List<_ChartData> chartData = [];
+    for (var day in sortedKeys) {
+      final dayEntries = grouped[day]!;
+      final avgMood = dayEntries.map((e) => moodToValue(e.mood)).reduce((a, b) => a + b) / dayEntries.length;
+      chartData.add(_ChartData(day, avgMood));
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text("Mood Graph")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SfCartesianChart(
+          primaryXAxis: CategoryAxis(),
+          primaryYAxis: NumericAxis(minimum: 0, maximum: 5, interval: 1),
+          tooltipBehavior: TooltipBehavior(enable: true),
+          series: <CartesianSeries>[
+            ColumnSeries<_ChartData, String>(
+              dataSource: chartData,
+              xValueMapper: (_ChartData data, _) => data.day,
+              yValueMapper: (_ChartData data, _) => data.avgMood,
+              pointColorMapper: (_ChartData data, _) {
+                if (data.avgMood >= 4.5) return Colors.green;
+                if (data.avgMood >= 3.5) return Colors.lightGreen;
+                if (data.avgMood >= 2.5) return Colors.yellow;
+                if (data.avgMood >= 1.5) return Colors.orange;
+                return Colors.red;
+              },
+              dataLabelMapper: (_ChartData data, _) => valueToEmoji(data.avgMood),
+              dataLabelSettings: const DataLabelSettings(
+                isVisible: true,
+                textStyle: TextStyle(fontSize: 24),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChartData {
+  final String day;
+  final double avgMood;
+
+  _ChartData(this.day, this.avgMood);
+}
