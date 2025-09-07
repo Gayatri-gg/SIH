@@ -189,7 +189,8 @@ class HistoryScreen extends StatelessWidget {
           return Card(
             margin: const EdgeInsets.all(8),
             child: ListTile(
-              leading: Text(entry.mood, style: const TextStyle(fontSize: 28)),
+              leading:
+              Text(entry.mood, style: const TextStyle(fontSize: 28)),
               title: Text(entry.text.isEmpty ? "No text" : entry.text),
               subtitle: Text(
                 "${entry.date.day}/${entry.date.month}/${entry.date.year} "
@@ -232,6 +233,23 @@ class MoodGraphScreen extends StatelessWidget {
     return "😡";
   }
 
+  String emojiToText(String emoji) {
+    switch (emoji) {
+      case "😊":
+        return "Happy";
+      case "😍":
+        return "Love";
+      case "😐":
+        return "Neutral";
+      case "😢":
+        return "Sad";
+      case "😡":
+        return "Angry";
+      default:
+        return "Unknown";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (entries.isEmpty) {
@@ -255,7 +273,10 @@ class MoodGraphScreen extends StatelessWidget {
     List<_ChartData> chartData = [];
     for (var day in sortedKeys) {
       final dayEntries = grouped[day]!;
-      final avgMood = dayEntries.map((e) => moodToValue(e.mood)).reduce((a, b) => a + b) / dayEntries.length;
+      final avgMood = dayEntries
+          .map((e) => moodToValue(e.mood))
+          .reduce((a, b) => a + b) /
+          dayEntries.length;
       chartData.add(_ChartData(day, avgMood));
     }
 
@@ -266,7 +287,25 @@ class MoodGraphScreen extends StatelessWidget {
         child: SfCartesianChart(
           primaryXAxis: CategoryAxis(),
           primaryYAxis: NumericAxis(minimum: 0, maximum: 5, interval: 1),
-          tooltipBehavior: TooltipBehavior(enable: true),
+          tooltipBehavior: TooltipBehavior(
+            enable: true,
+            builder: (dynamic data, dynamic point, dynamic series,
+                int pointIndex, int seriesIndex) {
+              final emoji = valueToEmoji(data.avgMood);
+              return Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  "${emojiToText(emoji)} $emoji",
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              );
+            },
+          ),
           series: <CartesianSeries>[
             ColumnSeries<_ChartData, String>(
               dataSource: chartData,
